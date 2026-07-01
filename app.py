@@ -1,8 +1,15 @@
 import streamlit as st
 import pandas as pd
 import os
-import fitz
 from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    PageBreak
+)
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
 
 st.set_page_config(
     page_title="Endless Xplorers AI Travel Planner",
@@ -10,499 +17,492 @@ st.set_page_config(
     layout="wide"
 )
 
-APP_FOLDER = r"C:\Users\ADMISSION CELL\Desktop\Gokulraj Project\Travel app"
+APP_FOLDER = os.path.dirname(os.path.abspath(__file__))
 
-def get_logo_path():
-    for ext in ["png", "jpg", "jpeg", "webp"]:
-        img_path = os.path.join(APP_FOLDER, f"LOGO.{ext}")
-        if os.path.exists(img_path):
-            return img_path
+LOGO_PATH = os.path.join(APP_FOLDER, "LOGO.png")
+BROCHURE_PATH = os.path.join(APP_FOLDER, "Endless Xplorer Final 1(1).pdf")
 
-    pdf_path = os.path.join(APP_FOLDER, "LOGO.pdf")
-    output_img = os.path.join(APP_FOLDER, "LOGO_converted.png")
-
-    if os.path.exists(pdf_path):
-        if not os.path.exists(output_img):
-            doc = fitz.open(pdf_path)
-            page = doc[0]
-            pix = page.get_pixmap(matrix=fitz.Matrix(3, 3), alpha=True)
-            pix.save(output_img)
-            doc.close()
-        return output_img
-
-    return None
-
-LOGO_PATH = get_logo_path()
+CONTACT = "+91 9894591780"
+EMAIL = "endlessxplorerofficial@gmail.com"
+INSTAGRAM = "@endlessxplorers_official"
 
 DESTINATIONS = [
     {
         "name": "Munnar",
-        "type": "Hill Station",
-        "interests": ["Nature", "Adventure", "Photography"],
-        "best_for": ["Family", "Couple", "Friends", "Students"],
         "budget": 4500,
-        "season": "September to May",
-        "places": ["Mattupetty Dam", "Echo Point", "Tea Museum", "Top Station", "Eravikulam National Park"],
-        "hotels": ["Budget Homestay", "Deluxe Hill View Hotel", "Premium Resort"]
+        "places": ["Mattupetty Dam", "Echo Point", "Tea Museum", "Top Station", "Eravikulam National Park"]
     },
     {
         "name": "Ooty",
-        "type": "Hill Station",
-        "interests": ["Nature", "Relaxation", "Photography"],
-        "best_for": ["Family", "Couple", "Students"],
         "budget": 4000,
-        "season": "October to June",
-        "places": ["Botanical Garden", "Ooty Lake", "Doddabetta Peak", "Rose Garden", "Pykara Lake"],
-        "hotels": ["Budget Lodge", "Family Hotel", "Luxury Cottage"]
+        "places": ["Botanical Garden", "Ooty Lake", "Doddabetta Peak", "Rose Garden", "Pykara Lake"]
     },
     {
         "name": "Kodaikanal",
-        "type": "Nature",
-        "interests": ["Nature", "Relaxation", "Photography"],
-        "best_for": ["Couple", "Family", "Friends"],
         "budget": 4200,
-        "season": "October to June",
-        "places": ["Kodai Lake", "Coaker's Walk", "Pillar Rocks", "Bryant Park", "Guna Caves"],
-        "hotels": ["Budget Stay", "Lake View Hotel", "Premium Villa"]
+        "places": ["Kodai Lake", "Coaker's Walk", "Pillar Rocks", "Bryant Park", "Guna Caves"]
     },
     {
         "name": "Goa",
-        "type": "Beach",
-        "interests": ["Beach", "Adventure", "Nightlife"],
-        "best_for": ["Friends", "Couple", "Corporate"],
         "budget": 9000,
-        "season": "November to February",
-        "places": ["Baga Beach", "Calangute Beach", "Fort Aguada", "Dudhsagar Falls", "Cruise Ride"],
-        "hotels": ["Beach Stay", "Deluxe Resort", "Luxury Sea View Resort"]
+        "places": ["Baga Beach", "Calangute Beach", "Fort Aguada", "Dudhsagar Falls", "Cruise Ride"]
     },
     {
         "name": "Kerala",
-        "type": "Family",
-        "interests": ["Nature", "Relaxation", "Houseboat"],
-        "best_for": ["Family", "Couple", "Corporate"],
         "budget": 8500,
-        "season": "September to March",
-        "places": ["Munnar", "Thekkady", "Alleppey", "Houseboat", "Kochi"],
-        "hotels": ["Family Hotel", "Houseboat Stay", "Premium Resort"]
+        "places": ["Munnar", "Thekkady", "Alleppey", "Houseboat", "Kochi"]
     }
 ]
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
-
 .stApp {
-    background: linear-gradient(135deg, #f4fbfb 0%, #e8f7f6 45%, #fff8e5 100%);
+    background: linear-gradient(135deg,#f5fbfb,#fff8e5);
 }
-
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #002b2b, #005f5f);
+    background: linear-gradient(180deg,#002b2b,#005f5f);
 }
-
 [data-testid="stSidebar"] * {
-    color: white !important;
+    color:white !important;
 }
-
-.block-container {
-    padding-top: 1.5rem;
-    padding-bottom: 2rem;
-}
-
 .hero {
-    background: linear-gradient(135deg, #003c3c, #006d6d, #00a884);
-    padding: 35px;
-    border-radius: 28px;
-    box-shadow: 0 18px 45px rgba(0, 60, 60, 0.28);
-    color: white;
-    margin-bottom: 25px;
+    background: linear-gradient(135deg,#003c3c,#00796b);
+    padding:32px;
+    border-radius:28px;
+    color:white;
+    box-shadow:0 15px 40px rgba(0,0,0,0.20);
 }
-
-.hero-title {
-    font-size: 46px;
-    font-weight: 800;
-    margin-bottom: 5px;
+.card {
+    background:white;
+    padding:25px;
+    border-radius:24px;
+    box-shadow:0 10px 30px rgba(0,80,80,0.15);
+    border:1px solid #d9eeee;
 }
-
-.hero-sub {
-    color: #ffe16b;
-    font-size: 20px;
-    font-weight: 700;
+.title {
+    color:#003c3c;
+    font-weight:800;
 }
-
-.hero-text {
-    font-size: 15px;
-    opacity: 0.95;
-}
-
-.logo-card {
-    background: white;
-    padding: 18px;
-    border-radius: 22px;
-    text-align: center;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.18);
-}
-
-.stat-card {
-    background: white;
-    padding: 22px;
-    border-radius: 22px;
-    box-shadow: 0 10px 30px rgba(0, 65, 65, 0.12);
-    border: 1px solid #d7eeee;
-    text-align: center;
-}
-
-.stat-card h2 {
-    color: #005f5f;
-    margin: 0;
-    font-weight: 800;
-}
-
-.stat-card p {
-    color: #4c6666;
-    margin: 5px 0 0 0;
-    font-weight: 600;
-}
-
-.form-card {
-    background: white;
-    padding: 25px;
-    border-radius: 24px;
-    box-shadow: 0 12px 35px rgba(0, 65, 65, 0.13);
-    border: 1px solid #d8eeee;
-}
-
-.result-card {
-    background: white;
-    padding: 30px;
-    border-radius: 26px;
-    box-shadow: 0 15px 45px rgba(0, 65, 65, 0.16);
-    border-left: 8px solid #00a884;
-}
-
-.section-title {
-    color: #003c3c;
-    font-weight: 800;
-}
-
-.badge {
-    display: inline-block;
-    background: #e7f8f5;
-    color: #006d6d;
-    padding: 8px 14px;
-    border-radius: 30px;
-    font-weight: 700;
-    margin: 5px 6px 5px 0;
-}
-
-.footer {
-    text-align: center;
-    color: #006d6d;
-    font-weight: 600;
-    margin-top: 30px;
-}
-
-.stButton > button {
-    background: linear-gradient(135deg, #006d6d, #00a884);
-    color: white;
-    border: none;
-    border-radius: 16px;
-    padding: 14px;
-    font-weight: 800;
-    font-size: 17px;
-}
-
-.stButton > button:hover {
-    background: linear-gradient(135deg, #004f4f, #008f76);
-    color: white;
-}
-
-.stDownloadButton > button {
-    background: #ffb703;
-    color: #102020;
-    border-radius: 14px;
-    border: none;
-    font-weight: 800;
+.stButton button {
+    background:linear-gradient(135deg,#006d6d,#00a884);
+    color:white;
+    font-weight:800;
+    border-radius:15px;
+    border:none;
+    padding:12px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-def recommend_destination(days, budget, travelers, interest, travel_type):
-    scored = []
-
-    for d in DESTINATIONS:
-        score = 0
-
-        if interest in d["interests"]:
-            score += 40
-
-        if travel_type in d["best_for"]:
-            score += 30
-
-        total = d["budget"] * days * travelers
-
-        if total <= budget:
-            score += 30
-        else:
-            score -= 10
-
-        scored.append((score, d, total))
-
-    scored.sort(reverse=True, key=lambda x: x[0])
-    return scored[0]
-
-def generate_itinerary(destination, days, start):
+def generate_itinerary(destination, days, start_location):
     places = destination["places"]
     itinerary = []
 
     for day in range(1, days + 1):
         if day == 1:
             plan = [
-                f"Start journey from {start}",
-                "Hotel check-in and refreshment",
-                f"Visit {places[0]}",
-                f"Evening sightseeing at {places[1]}",
-                "Dinner and overnight stay"
+                f"Departure from {start_location}",
+                f"Arrival at {destination['name']}",
+                "Check In Hotel",
+                "Breakfast",
+                "Proceed to Sightseeings",
+                places[0],
+                places[1] if len(places) > 1 else places[0],
+                "Lunch",
+                places[2] if len(places) > 2 else places[0],
+                places[3] if len(places) > 3 else places[0],
+                "Dinner",
+                "Night stay at hotel"
             ]
         elif day == days:
             plan = [
-                f"Morning visit to {places[-1]}",
-                "Shopping and photography",
-                "Hotel check-out",
-                f"Return journey to {start}"
+                f"Departure from {destination['name']}",
+                "Breakfast",
+                "Proceed to Sightseeings",
+                places[-2] if len(places) > 2 else places[0],
+                places[-1],
+                "Lunch",
+                "Shopping / Photography",
+                "Dinner",
+                f"Return back to {start_location}"
             ]
         else:
-            index = min(day, len(places) - 1)
             plan = [
-                f"Visit {places[index]}",
+                "Breakfast",
+                "Proceed to Sightseeings",
+                places[min(day, len(places)-1)],
                 "Explore nearby attractions",
-                "Lunch break",
-                "Evening leisure time",
-                "Overnight stay"
+                "Lunch",
+                "Evening leisure / Camp fire",
+                "Dinner",
+                "Night stay at hotel"
             ]
 
         itinerary.append((day, plan))
 
     return itinerary
 
-def budget_table(total):
-    return pd.DataFrame({
-        "Category": ["Hotel", "Transport", "Food", "Activities", "Miscellaneous"],
-        "Amount ₹": [
-            int(total * 0.35),
-            int(total * 0.30),
-            int(total * 0.18),
-            int(total * 0.12),
-            int(total * 0.05)
-        ]
-    })
+def build_package_pdf(
+    file_path,
+    college_name,
+    client_name,
+    plan_name,
+    destination,
+    days,
+    start_location,
+    persons,
+    staff_count,
+    accommodation,
+    transport,
+    food,
+    package_cost,
+    activities
+):
+    doc = SimpleDocTemplate(
+        file_path,
+        pagesize=A4,
+        rightMargin=45,
+        leftMargin=45,
+        topMargin=35,
+        bottomMargin=35
+    )
 
-if LOGO_PATH:
+    styles = getSampleStyleSheet()
+    normal = ParagraphStyle("normal", parent=styles["Normal"], fontSize=11, leading=16)
+    title = ParagraphStyle("title", parent=styles["Title"], fontSize=18, leading=24, alignment=1)
+    heading = ParagraphStyle("heading", parent=styles["Heading2"], fontSize=15, leading=20)
+    small = ParagraphStyle("small", parent=styles["Normal"], fontSize=10, leading=14)
+
+    story = []
+
+    def header():
+        if os.path.exists(LOGO_PATH):
+            story.append(Table([
+                [f'<img src="{LOGO_PATH}" width="110" height="70"/>',
+                 Paragraph(f"☎ {CONTACT}<br/>✉ {EMAIL}<br/>📷 {INSTAGRAM}", heading)]
+            ], colWidths=[2.5*inch, 4.5*inch]))
+        else:
+            story.append(Paragraph("ENDLESS XPLORERS", title))
+            story.append(Paragraph(f"{CONTACT}<br/>{EMAIL}<br/>{INSTAGRAM}", normal))
+
+        story.append(Spacer(1, 12))
+        story.append(Table([[""]], colWidths=[7*inch],
+                           style=[("LINEBELOW", (0,0), (-1,-1), 2, colors.black)]))
+        story.append(Spacer(1, 25))
+
+    header()
+
+    story.append(Paragraph(
+        "We are pleased to welcome you as a valuable customer of <b>Endless Xplorers</b>.<br/>"
+        "We hope your tour with us will be a memorable one.",
+        normal
+    ))
+    story.append(Spacer(1, 22))
+
+    details = [
+        ["College Name:", college_name],
+        ["Client Name:", client_name],
+        ["Plan:", plan_name],
+    ]
+
+    story.append(Table(details, colWidths=[1.6*inch, 4.5*inch], style=[
+        ("FONTNAME", (0,0), (0,-1), "Helvetica-Bold"),
+        ("FONTNAME", (1,0), (1,-1), "Helvetica-Bold"),
+        ("FONTSIZE", (0,0), (-1,-1), 12),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 12),
+    ]))
+
+    itinerary = generate_itinerary(destination, days, start_location)
+
+    for day, plan in itinerary:
+        story.append(Spacer(1, 15))
+        story.append(Paragraph(f"<b>Day {day} :</b>", heading))
+        for item in plan:
+            if item in ["Breakfast", "Lunch", "Dinner", "Night stay at hotel"]:
+                story.append(Paragraph(f"<b>{item}</b>", normal))
+            else:
+                story.append(Paragraph(item, normal))
+
+        if day != days:
+            story.append(PageBreak())
+            header()
+
+    story.append(PageBreak())
+    header()
+
+    story.append(Paragraph("<b>TARIFF CHART</b>", title))
+    story.append(Spacer(1, 12))
+
+    tariff_data = [
+        ["No. of Person", f"{persons} Students + {staff_count} Staff"],
+        ["Accommodation Mode", accommodation],
+        ["Transport", transport],
+        ["Food", food],
+        ["Package cost", f"Rs.{package_cost}/- Per Head"],
+        ["Additional Activities", activities],
+    ]
+
+    tariff_table = Table(tariff_data, colWidths=[3*inch, 3.8*inch])
+    tariff_table.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.8, colors.grey),
+        ("BACKGROUND", (0,0), (-1,-1), colors.white),
+        ("FONTNAME", (0,0), (0,-1), "Helvetica"),
+        ("FONTNAME", (1,0), (1,-1), "Helvetica-Bold"),
+        ("TEXTCOLOR", (1,0), (1,-1), colors.HexColor("#00a884")),
+        ("ALIGN", (0,0), (-1,-1), "CENTER"),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("FONTSIZE", (0,0), (-1,-1), 11),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 10),
+        ("TOPPADDING", (0,0), (-1,-1), 10),
+    ]))
+    story.append(tariff_table)
+
+    story.append(Spacer(1, 25))
+    story.append(Paragraph("<u>Package Inclusions:</u>", heading))
+    inclusions = [
+        "Accommodation in comfortable and convenient hotels.",
+        "Entrance fees of sightseeing places as mentioned in the tariff chart.",
+        "Tour Manager services from Day 1 meeting point till dropping point on last day.",
+        "Breakfast, Lunch and Dinner as per the package food plan.",
+        "Additional activities as mentioned in the tariff chart.",
+        "Bus / Train / Flight tickets if included in the package.",
+        "Toll, parking, fuel, driver bata and applicable taxes.",
+        "Travel by comfortable A/c or Non A/c coach / vehicle as per itinerary.",
+        "Under unavoidable circumstances alternative hotels and vehicles will be provided."
+    ]
+
+    for item in inclusions:
+        story.append(Paragraph(f"• {item}", small))
+
+    story.append(PageBreak())
+    header()
+
+    story.append(Paragraph("<u>Package Exclusions:</u>", heading))
+    exclusions = [
+        "Any extra expense such as route change, personal expenses, laundry, telephone calls, tips, liquor, food or drink which is not part of a set group menu.",
+        "Additional sightseeing or usage of vehicle not mentioned in the itinerary.",
+        "Any upgradation in hotel room category.",
+        "Any extra cost incurred due to illness, accident, hospitalization or personal emergency.",
+        "Any services or activity charges other than those included in the tour itinerary."
+    ]
+
+    for item in exclusions:
+        story.append(Paragraph(f"• {item}", small))
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph("<u>Note:</u>", heading))
+    notes = [
+        "Under unavoidable circumstances itineraries may be changed or reversed, however all inclusions in the itinerary will remain same.",
+        "Tour manager will meet as per the above designated points. Kindly reconfirm details with our travel advisor one week prior to departure.",
+        "Any delay due to natural calamities or vehicle mechanism complaints company will not be responsible for delay. Your safety will be ensured and resolved accordingly."
+    ]
+
+    for item in notes:
+        story.append(Paragraph(f"• {item}", small))
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph("<u>Tour Payment by Guest:</u>", heading))
+    payments = [
+        "The guest will have to make 50% payment for confirming the services.",
+        "The guest will have to make the full payment before tour departure.",
+        "Any hike in visa fee / VFS fees or increase in government tax is not under the company's control. Such additional charges shall be paid by the guest."
+    ]
+
+    for item in payments:
+        story.append(Paragraph(f"• {item}", small))
+
+    story.append(Spacer(1, 18))
+    story.append(Paragraph("<u>Cancellation Policy:</u>", heading))
+    cancel_text = (
+        "If the guest decides to cancel the tour for any reason, she/he shall give a written "
+        "application to the company within the specified time limit along with the original receipt. "
+        "Cancellation charges will be calculated on gross tour cost and depend on the date of departure "
+        "and date of cancellation."
+    )
+    story.append(Paragraph(cancel_text, small))
+
+    story.append(PageBreak())
+    header()
+
+    cancel_table = Table([
+        ["No of days Prior to Departure", "% of Cancellation Charges"],
+        ["10 Days Before", "25%"],
+        ["5 Days Before", "50%"],
+        ["2 Days Before", "75%"],
+        ["24 hrs. / No Show", "100%"],
+    ], colWidths=[3.5*inch, 3.2*inch])
+
+    cancel_table.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.8, colors.grey),
+        ("ALIGN", (0,0), (-1,-1), "CENTER"),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("FONTSIZE", (0,0), (-1,-1), 11),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 8),
+        ("TOPPADDING", (0,0), (-1,-1), 8),
+    ]))
+
+    story.append(cancel_table)
+    story.append(Spacer(1, 70))
+    story.append(Paragraph("*** Thank you for choosing us Endless Xplorers. ***", title))
+    story.append(Spacer(1, 15))
+    story.append(Paragraph("Our services will be continue with you forever. ***", title))
+    story.append(Spacer(1, 40))
+    story.append(Paragraph("Thank you", ParagraphStyle(
+        "thanks",
+        parent=styles["Title"],
+        fontSize=36,
+        textColor=colors.HexColor("#7fb3c8"),
+        alignment=1
+    )))
+
+    doc.build(story)
+
+def recommend_destination(destination_name):
+    for d in DESTINATIONS:
+        if d["name"] == destination_name:
+            return d
+    return DESTINATIONS[0]
+
+# Sidebar
+if os.path.exists(LOGO_PATH):
     st.sidebar.image(LOGO_PATH, use_container_width=True)
 
-st.sidebar.markdown("## Endless Xplorers")
-st.sidebar.write("📞 9894591780")
-st.sidebar.write("📸 @endlessxplorers_official")
-st.sidebar.markdown("---")
-st.sidebar.write("✅ AI Trip Recommendation")
-st.sidebar.write("✅ Budget Prediction")
-st.sidebar.write("✅ Day-wise Itinerary")
-st.sidebar.write("✅ Hotel Suggestions")
-st.sidebar.write("✅ WhatsApp Promotion")
-st.sidebar.write("✅ Download Plan")
+st.sidebar.title("Endless Xplorers")
+st.sidebar.write(CONTACT)
+st.sidebar.write(EMAIL)
+st.sidebar.write(INSTAGRAM)
 
-hero_col1, hero_col2 = st.columns([1, 4])
+if os.path.exists(BROCHURE_PATH):
+    with open(BROCHURE_PATH, "rb") as f:
+        st.sidebar.download_button(
+            "📘 Download Company Brochure",
+            f,
+            file_name="Endless_Xplorers_Brochure.pdf",
+            mime="application/pdf"
+        )
 
-with hero_col1:
-    st.markdown("<div class='logo-card'>", unsafe_allow_html=True)
-    if LOGO_PATH:
+# Header
+col1, col2 = st.columns([1, 4])
+
+with col1:
+    if os.path.exists(LOGO_PATH):
         st.image(LOGO_PATH, use_container_width=True)
     else:
-        st.markdown("## 🌍")
-        st.warning("LOGO.pdf not found")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.warning("Upload LOGO.png")
 
-with hero_col2:
+with col2:
     st.markdown("""
     <div class="hero">
-        <div class="hero-title">Endless Xplorers</div>
-        <div class="hero-sub">AI-Powered Smart Travel Planner</div>
-        <p class="hero-text">
-            Premium travel planning system for customized packages, smart budget estimation,
-            day-wise itinerary generation and instant WhatsApp promotions.
-        </p>
-        <span class="badge">Explore Beyond Boundaries</span>
-        <span class="badge">Creating Memories Together</span>
+        <h1>Endless Xplorers</h1>
+        <h3>AI-Powered Smart Travel Planner</h3>
+        <p>Explore Beyond Boundaries • Creating Memories Together</p>
     </div>
     """, unsafe_allow_html=True)
 
-s1, s2, s3, s4 = st.columns(4)
-
-s1.markdown("<div class='stat-card'><h2>25+</h2><p>Tour Packages</p></div>", unsafe_allow_html=True)
-s2.markdown("<div class='stat-card'><h2>AI</h2><p>Smart Planner</p></div>", unsafe_allow_html=True)
-s3.markdown("<div class='stat-card'><h2>₹</h2><p>Budget Estimator</p></div>", unsafe_allow_html=True)
-s4.markdown("<div class='stat-card'><h2>24/7</h2><p>Customer Support</p></div>", unsafe_allow_html=True)
-
 st.write("")
 
-left, right = st.columns(2)
+st.markdown("<div class='card'>", unsafe_allow_html=True)
+st.markdown("<h2 class='title'>🧳 Client Package Generator</h2>", unsafe_allow_html=True)
 
-with left:
-    st.markdown("<div class='form-card'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>🧳 Customer Travel Details</h3>", unsafe_allow_html=True)
+c1, c2, c3 = st.columns(3)
 
+with c1:
+    college_name = st.text_input("College / Company Name", "SNMV")
+    client_name = st.text_input("Client Name", "Praveen - IT")
     start_location = st.text_input("Starting Location", "Coimbatore")
-    days = st.slider("Number of Days", 1, 10, 3)
-    travelers = st.number_input("Number of Travelers", min_value=1, max_value=100, value=2)
-    budget = st.number_input("Total Budget ₹", min_value=1000, max_value=500000, value=20000)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+with c2:
+    destination_name = st.selectbox("Destination Plan", [d["name"] for d in DESTINATIONS])
+    days = st.slider("No. of Days", 1, 7, 2)
+    persons = st.number_input("No. of Students / Persons", 1, 500, 35)
 
-with right:
-    st.markdown("<div class='form-card'>", unsafe_allow_html=True)
-    st.markdown("<h3 class='section-title'>🎯 Travel Preferences</h3>", unsafe_allow_html=True)
+with c3:
+    staff_count = st.number_input("No. of Staff", 0, 50, 2)
+    accommodation = st.text_input("Accommodation Mode", "04 Sharing basis (Non A/c)")
+    transport = st.text_input("Transport", "54 Seater")
 
-    interest = st.selectbox(
-        "Interest",
-        ["Nature", "Adventure", "Beach", "Relaxation", "Photography", "Houseboat", "Nightlife"]
-    )
+food = st.text_input("Food", "6 Times (4 Times Non-Veg)")
+package_cost = st.text_input("Package Cost Per Head", "5950")
+activities = st.text_input("Additional Activities", "Entry Tickets, Jeep, DJ")
 
-    travel_type = st.selectbox(
-        "Travel Type",
-        ["Family", "Couple", "Friends", "Students", "Corporate"]
-    )
+selected = recommend_destination(destination_name)
+plan_name = f"{destination_name} Package"
 
-    hotel_type = st.selectbox(
-        "Hotel Preference",
-        ["Budget", "Deluxe", "Premium", "Luxury"]
-    )
+st.write("")
+st.markdown("### Preview Itinerary")
 
-    food_preference = st.selectbox(
-        "Food Preference",
-        ["Veg", "Non-Veg", "Both"]
-    )
+itinerary = generate_itinerary(selected, days, start_location)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+for day, plan in itinerary:
+    st.markdown(f"#### Day {day}")
+    for item in plan:
+        st.write("•", item)
 
 st.write("")
 
-if st.button("🚀 Generate Premium AI Travel Plan", use_container_width=True):
-    score, selected, total = recommend_destination(days, budget, travelers, interest, travel_type)
-    itinerary = generate_itinerary(selected, days, start_location)
-    df = budget_table(total)
+if st.button("📥 Generate & Download Client Package PDF", use_container_width=True):
+    output_pdf = os.path.join(APP_FOLDER, f"{destination_name}_Client_Package.pdf")
 
-    st.markdown("<div class='result-card'>", unsafe_allow_html=True)
+    build_package_pdf(
+        output_pdf,
+        college_name,
+        client_name,
+        plan_name,
+        selected,
+        days,
+        start_location,
+        persons,
+        staff_count,
+        accommodation,
+        transport,
+        food,
+        package_cost,
+        activities
+    )
 
-    st.markdown(f"<h2 class='section-title'>✅ AI Recommended Destination: {selected['name']}</h2>", unsafe_allow_html=True)
+    with open(output_pdf, "rb") as f:
+        st.download_button(
+            "✅ Download Package PDF",
+            f,
+            file_name=f"{destination_name}_Package.pdf",
+            mime="application/pdf",
+            use_container_width=True
+        )
 
-    r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Destination", selected["name"])
-    r2.metric("Duration", f"{days} Days")
-    r3.metric("Estimated Cost", f"₹{int(total)}")
-    r4.metric("AI Match", f"{max(score, 0)}%")
+st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("### 📌 Package Summary")
-    st.write(f"**From:** {start_location}")
-    st.write(f"**Destination:** {selected['name']}")
-    st.write(f"**Travel Type:** {travel_type}")
-    st.write(f"**Travelers:** {travelers}")
-    st.write(f"**Hotel Type:** {hotel_type}")
-    st.write(f"**Food Preference:** {food_preference}")
-    st.write(f"**Best Season:** {selected['season']}")
+st.write("")
 
-    full_text = f"""
-ENDLESS XPLORERS - AI TRAVEL PLAN
+st.markdown("<div class='card'>", unsafe_allow_html=True)
+st.markdown("<h2 class='title'>📢 WhatsApp Promotion Message</h2>", unsafe_allow_html=True)
 
-Generated On: {datetime.now().strftime("%d-%m-%Y %I:%M %p")}
-
-From: {start_location}
-Destination: {selected['name']}
-Duration: {days} Days
-Travelers: {travelers}
-Travel Type: {travel_type}
-Hotel Type: {hotel_type}
-Food Preference: {food_preference}
-Estimated Budget: ₹{int(total)}
-
-DAY-WISE ITINERARY
-"""
-
-    st.markdown("### 🗓 Day-Wise Itinerary")
-    for day, plan in itinerary:
-        st.markdown(f"#### Day {day}")
-        full_text += f"\nDay {day}\n"
-        for item in plan:
-            st.write(f"✅ {item}")
-            full_text += f"- {item}\n"
-
-    st.markdown("### 💰 Budget Split-Up")
-    st.dataframe(df, use_container_width=True, hide_index=True)
-
-    full_text += "\nBUDGET SPLIT-UP\n"
-    for _, row in df.iterrows():
-        full_text += f"{row['Category']}: ₹{row['Amount ₹']}\n"
-
-    st.markdown("### 🏨 Suggested Hotels")
-    for hotel in selected["hotels"]:
-        st.write(f"🏨 {hotel}")
-
-    promo = f"""
+promo = f"""
 🌍 Endless Xplorers
 
-✨ {selected['name']} {days} Days Travel Package ✨
+✨ {destination_name} Travel Package ✨
 
 📍 From: {start_location}
-👥 Travelers: {travelers}
-🏨 Stay: {hotel_type}
-🍽 Food Preference: {food_preference}
-💰 Estimated Budget: ₹{int(total)}
+👥 Persons: {persons} + {staff_count} Staff
+🏨 Stay: {accommodation}
+🚌 Transport: {transport}
+🍽 Food: {food}
+💰 Package Cost: Rs.{package_cost}/- Per Head
 
-Places Covered:
-{", ".join(selected['places'])}
-
-📞 Contact: 9894591780
-📸 Instagram: @endlessxplorers_official
+📞 Contact: {CONTACT}
+📸 Instagram: {INSTAGRAM}
 
 ✨ Explore Beyond Boundaries
 ✨ Creating Memories Together
 """
 
-    st.markdown("### 📲 AI WhatsApp Promotion")
-    st.text_area("Copy Message", promo, height=240)
-
-    st.download_button(
-        "📥 Download Travel Plan",
-        data=full_text,
-        file_name=f"{selected['name']}_Travel_Plan.txt",
-        mime="text/plain"
-    )
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-st.write("")
-st.markdown("<div class='form-card'>", unsafe_allow_html=True)
-st.markdown("<h3 class='section-title'>📞 Customer Enquiry Form</h3>", unsafe_allow_html=True)
-
-with st.form("enquiry_form"):
-    c1, c2 = st.columns(2)
-    with c1:
-        customer_name = st.text_input("Customer Name")
-    with c2:
-        mobile = st.text_input("Mobile Number")
-
-    requirement = st.text_area("Customer Requirement")
-    submit = st.form_submit_button("Save Enquiry")
-
-    if submit:
-        st.success("Customer enquiry saved successfully.")
+st.text_area("Copy Message", promo, height=230)
 
 st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("""
-<div class="footer">
-    Endless Xplorers © 2026 | Explore Beyond Boundaries | Creating Memories Together
-</div>
+<br>
+<center>
+<b>Endless Xplorers © 2026</b><br>
+Explore Beyond Boundaries | Creating Memories Together
+</center>
 """, unsafe_allow_html=True)
