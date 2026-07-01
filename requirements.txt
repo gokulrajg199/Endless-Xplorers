@@ -1,8 +1,5 @@
 streamlit
-pandas
 reportlab
-openpyxl
 Pillow
-requests
-openai
-google-generativeai
+PyMuPDF
+pandas
