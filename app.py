@@ -1,24 +1,31 @@
 import streamlit as st
 import os
-import base64
 import urllib.parse
 import pandas as pd
 from datetime import datetime
-from PIL import Image as PILImage
 import fitz
 
 from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image as RLImage
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table,
+    TableStyle, PageBreak, Image as RLImage
+)
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 
+# =========================
+# PAGE CONFIG
+# =========================
 st.set_page_config(
     page_title="Endless Xplorers",
     page_icon="🌍",
     layout="wide"
 )
 
+# =========================
+# PATHS
+# =========================
 APP_FOLDER = os.path.dirname(os.path.abspath(__file__))
 LOGO_PATH = os.path.join(APP_FOLDER, "LOGO.jpg")
 BROCHURE_PATH = os.path.join(APP_FOLDER, "Endless Xplorer Final 1.pdf")
@@ -31,74 +38,73 @@ INSTAGRAM = "@endlessxplorers_official"
 ADDRESS = "21/1, Nanjappa Gounder Thottam Road, Telungupalayam, Coimbatore - 641039"
 TAGLINE = "Explore Beyond Boundaries • Creating Memories Together"
 
-THEME = {
-    "teal": "#063B3B",
-    "gold": "#D4AF37",
-    "cream": "#F7F1DD",
-    "white": "#FFFFFF",
-    "dark": "#0B1F1F"
-}
+TEAL = "#063B3B"
+GOLD = "#D4AF37"
+CREAM = "#F7F1DD"
+WHITE = "#FFFFFF"
 
+# =========================
+# DESTINATION DATA
+# =========================
 DESTINATIONS = {
     "South India": {
         "Munnar": ["Tea Gardens", "Mattupetty Dam", "Echo Point", "Top Station", "Eravikulam National Park", "Kundala Lake"],
-        "Alleppey": ["Houseboat Cruise", "Backwaters", "Vembanad Lake", "Beach Visit", "Village Experience", "Sunset Cruise"],
-        "Coorg": ["Coffee Plantation", "Golden Temple", "Dubare Elephant Camp", "Abbey Falls", "Raja Seat", "Nisargadhama"],
-        "Madurai": ["Meenakshi Amman Temple", "Thirumalai Nayakkar Palace", "Gandhi Museum", "Alagar Kovil", "Local Shopping"],
-        "Kanyakumari": ["Vivekananda Rock", "Thiruvalluvar Statue", "Sunrise Point", "Kanyakumari Beach", "Suchindram Temple"],
-        "Mysore": ["Mysore Palace", "Chamundi Hills", "Brindavan Garden", "Zoo", "St. Philomena Church"],
-        "Hampi": ["Virupaksha Temple", "Stone Chariot", "Vijaya Vittala Temple", "Lotus Mahal", "Tungabhadra River"],
+        "Alleppey": ["Houseboat Cruise", "Backwaters", "Vembanad Lake", "Village Experience", "Beach Visit"],
+        "Coorg": ["Coffee Plantation", "Golden Temple", "Dubare Elephant Camp", "Abbey Falls", "Raja Seat"],
+        "Madurai": ["Meenakshi Amman Temple", "Thirumalai Nayakkar Palace", "Gandhi Museum", "Alagar Kovil"],
+        "Kanyakumari": ["Vivekananda Rock", "Thiruvalluvar Statue", "Sunrise Point", "Beach Visit"],
+        "Mysore": ["Mysore Palace", "Chamundi Hills", "Brindavan Garden", "Zoo"],
+        "Hampi": ["Virupaksha Temple", "Stone Chariot", "Vijaya Vittala Temple", "Lotus Mahal"],
         "Ooty": ["Botanical Garden", "Ooty Lake", "Doddabetta Peak", "Rose Garden", "Pykara Lake", "Toy Train"]
     },
     "North India": {
-        "Kashmir": ["Srinagar", "Dal Lake Shikara Ride", "Gulmarg", "Pahalgam", "Sonamarg", "Mughal Garden"],
-        "Himachal Pradesh": ["Shimla", "Manali", "Solang Valley", "Kullu", "Rohtang Pass", "Mall Road"],
-        "Agra": ["Taj Mahal", "Agra Fort", "Mehtab Bagh", "Fatehpur Sikri", "Local Handicrafts"],
-        "Jaipur": ["Amer Fort", "Hawa Mahal", "City Palace", "Jantar Mantar", "Jal Mahal", "Local Bazaar"],
-        "Rishikesh": ["Ganga Aarti", "Lakshman Jhula", "River Rafting", "Beatles Ashram", "Yoga Experience"],
-        "Haridwar": ["Har Ki Pauri", "Ganga Aarti", "Mansa Devi Temple", "Chandi Devi Temple", "Local Market"],
-        "Varanasi": ["Kashi Vishwanath Temple", "Ganga Aarti", "Boat Ride", "Sarnath", "Banaras Streets"],
-        "Leh-Ladakh": ["Pangong Lake", "Nubra Valley", "Magnetic Hill", "Leh Palace", "Shanti Stupa"]
+        "Kashmir": ["Srinagar", "Dal Lake", "Shikara Ride", "Gulmarg", "Pahalgam", "Sonamarg"],
+        "Himachal Pradesh": ["Shimla", "Manali", "Solang Valley", "Kullu", "Rohtang Pass"],
+        "Agra": ["Taj Mahal", "Agra Fort", "Mehtab Bagh", "Fatehpur Sikri"],
+        "Jaipur": ["Amer Fort", "Hawa Mahal", "City Palace", "Jantar Mantar", "Jal Mahal"],
+        "Rishikesh": ["Ganga Aarti", "Lakshman Jhula", "River Rafting", "Yoga Experience"],
+        "Haridwar": ["Har Ki Pauri", "Ganga Aarti", "Mansa Devi Temple", "Chandi Devi Temple"],
+        "Varanasi": ["Kashi Vishwanath Temple", "Ganga Aarti", "Boat Ride", "Sarnath"],
+        "Leh-Ladakh": ["Pangong Lake", "Nubra Valley", "Magnetic Hill", "Leh Palace"]
     },
     "International": {
-        "Dubai": ["Burj Khalifa", "Dubai Mall", "Desert Safari", "Dubai Marina", "Palm Jumeirah", "Global Village"],
-        "Bali": ["Ubud", "Tanah Lot Temple", "Kuta Beach", "Nusa Penida", "Uluwatu Temple", "Bali Swing"],
-        "Maldives": ["Male City", "Water Villa", "Private Beach", "Sunset Cruise", "Snorkeling", "Island Hopping"],
-        "Singapore": ["Merlion Park", "Sentosa Island", "Universal Studios", "Gardens by the Bay", "Marina Bay Sands"],
-        "Paris": ["Eiffel Tower", "Louvre Museum", "Seine River Cruise", "Notre Dame View", "City Tour"],
-        "Switzerland": ["Mount Titlis", "Lucerne", "Interlaken", "Zurich", "Swiss Alps"],
-        "London": ["Big Ben", "London Eye", "Tower Bridge", "Buckingham Palace", "Thames Cruise"],
-        "New York": ["Statue of Liberty", "Times Square", "Central Park", "Brooklyn Bridge", "Empire State Building"]
+        "Dubai": ["Burj Khalifa", "Dubai Mall", "Desert Safari", "Dubai Marina", "Palm Jumeirah"],
+        "Bali": ["Ubud", "Tanah Lot Temple", "Kuta Beach", "Nusa Penida", "Bali Swing"],
+        "Maldives": ["Male City", "Water Villa", "Private Beach", "Sunset Cruise", "Snorkeling"],
+        "Singapore": ["Merlion Park", "Sentosa Island", "Universal Studios", "Gardens by the Bay"],
+        "Paris": ["Eiffel Tower", "Louvre Museum", "Seine River Cruise", "City Tour"],
+        "Switzerland": ["Mount Titlis", "Lucerne", "Interlaken", "Swiss Alps"],
+        "London": ["Big Ben", "London Eye", "Tower Bridge", "Buckingham Palace"],
+        "New York": ["Statue of Liberty", "Times Square", "Central Park", "Brooklyn Bridge"]
     },
     "Educational": {
-        "Science & Technology": ["Science Centre", "Innovation Lab", "Robotics Demo", "Hands-on Learning", "Knowledge Session"],
-        "History & Heritage": ["Museum Visit", "Monuments", "UNESCO Sites", "Guided Heritage Walk", "Cultural Learning"],
-        "Wildlife & Nature": ["National Park", "Nature Trail", "Wildlife Safari", "Eco Learning", "Conservation Session"],
-        "Industry Visit": ["Factory Visit", "Expert Interaction", "Industrial Process Study", "Career Guidance", "Team Learning"]
+        "Science & Technology": ["Science Centre", "Innovation Lab", "Robotics Demo", "Knowledge Session"],
+        "History & Heritage": ["Museum Visit", "Heritage Walk", "UNESCO Sites", "Cultural Learning"],
+        "Wildlife & Nature": ["National Park", "Nature Trail", "Wildlife Safari", "Eco Learning"],
+        "Industry Visit": ["Factory Visit", "Expert Interaction", "Industrial Process Study", "Career Guidance"]
     },
     "Corporate": {
-        "Corporate Offsite": ["Resort Check-in", "Team Activities", "Leadership Games", "Networking Dinner", "Relaxation"],
-        "Team Building": ["Ice Breakers", "Outdoor Games", "Problem Solving Tasks", "Group Challenges", "Award Session"],
-        "Conference Tour": ["Venue Setup", "Seminar Session", "Travel Management", "Lunch", "Networking"],
-        "Incentive Travel": ["Premium Stay", "Sightseeing", "Celebration Dinner", "Awards Night", "Team Bonding"]
+        "Corporate Offsite": ["Resort Check-in", "Team Activities", "Leadership Games", "Networking Dinner"],
+        "Team Building": ["Ice Breakers", "Outdoor Games", "Group Challenges", "Award Session"],
+        "Conference Tour": ["Venue Setup", "Seminar Session", "Travel Management", "Lunch"],
+        "Incentive Travel": ["Premium Stay", "Sightseeing", "Celebration Dinner", "Team Bonding"]
     },
     "Honeymoon": {
-        "Maldives Honeymoon": ["Water Villa", "Private Beach Dinner", "Sunset Cruise", "Snorkeling", "Couple Photoshoot"],
-        "Bali Honeymoon": ["Romantic Villa", "Bali Swing", "Temple Visit", "Beach Dinner", "Spa Experience"],
-        "Kerala Honeymoon": ["Munnar Hills", "Alleppey Houseboat", "Candlelight Dinner", "Ayurvedic Spa", "Backwater Cruise"],
-        "Switzerland Honeymoon": ["Swiss Alps", "Lucerne", "Mount Titlis", "Romantic Train Journey", "Lake View"]
+        "Maldives Honeymoon": ["Water Villa", "Private Beach Dinner", "Sunset Cruise", "Snorkeling"],
+        "Bali Honeymoon": ["Romantic Villa", "Bali Swing", "Temple Visit", "Beach Dinner"],
+        "Kerala Honeymoon": ["Munnar Hills", "Alleppey Houseboat", "Candlelight Dinner", "Spa"],
+        "Switzerland Honeymoon": ["Swiss Alps", "Lucerne", "Mount Titlis", "Romantic Train Journey"]
     },
     "Pilgrimage": {
-        "Char Dham Yatra": ["Yamunotri", "Gangotri", "Kedarnath", "Badrinath", "Spiritual Darshan"],
-        "Kashi - Ayodhya": ["Kashi Vishwanath", "Ganga Aarti", "Ayodhya Ram Mandir", "Sarayu Aarti", "Local Temple Visit"],
-        "Tirupati - Rameswaram": ["Tirupati Darshan", "Padmavathi Temple", "Rameswaram Temple", "Dhanushkodi", "Agni Theertham"],
-        "Haridwar - Rishikesh": ["Har Ki Pauri", "Ganga Aarti", "Yoga Ashram", "Lakshman Jhula", "Spiritual Walk"]
+        "Char Dham Yatra": ["Yamunotri", "Gangotri", "Kedarnath", "Badrinath"],
+        "Kashi - Ayodhya": ["Kashi Vishwanath", "Ganga Aarti", "Ayodhya Ram Mandir", "Sarayu Aarti"],
+        "Tirupati - Rameswaram": ["Tirupati Darshan", "Padmavathi Temple", "Rameswaram Temple", "Dhanushkodi"],
+        "Haridwar - Rishikesh": ["Har Ki Pauri", "Ganga Aarti", "Yoga Ashram", "Lakshman Jhula"]
     }
 }
 
-BROCHURE_PAGE_MAP = {
+BROCHURE_PAGES = {
     "Home": 1,
-    "About": 2,
     "Why Choose Us": 3,
     "South India": 4,
     "North India": 5,
@@ -107,59 +113,55 @@ BROCHURE_PAGE_MAP = {
     "Corporate": 8,
     "Honeymoon": 9,
     "Pilgrimage": 10,
-    "Experiences": 11,
-    "Services": 12,
+    "Travel Services": 12,
     "Contact": 13
 }
 
+# =========================
+# BROCHURE IMAGE EXTRACTION
+# =========================
 @st.cache_resource
 def extract_brochure_pages():
     output_dir = os.path.join(APP_FOLDER, "brochure_pages")
     os.makedirs(output_dir, exist_ok=True)
-
-    page_images = {}
+    pages = {}
 
     if not os.path.exists(BROCHURE_PATH):
-        return page_images
+        return pages
 
-    doc = fitz.open(BROCHURE_PATH)
+    pdf = fitz.open(BROCHURE_PATH)
 
-    for page_no in range(len(doc)):
-        output_path = os.path.join(output_dir, f"page_{page_no + 1}.png")
+    for page_no in range(len(pdf)):
+        image_path = os.path.join(output_dir, f"page_{page_no + 1}.png")
+        if not os.path.exists(image_path):
+            page = pdf[page_no]
+            pix = page.get_pixmap(matrix=fitz.Matrix(1.3, 1.3), alpha=False)
+            pix.save(image_path)
+        pages[page_no + 1] = image_path
 
-        if not os.path.exists(output_path):
-            page = doc[page_no]
-            pix = page.get_pixmap(matrix=fitz.Matrix(1.6, 1.6), alpha=False)
-            pix.save(output_path)
+    return pages
 
-        page_images[page_no + 1] = output_path
+page_images = extract_brochure_pages()
 
-    return page_images
+# =========================
+# HELPERS
+# =========================
+def whatsapp_link(message):
+    return f"https://wa.me/91{CONTACT}?text={urllib.parse.quote(message)}"
 
-def image_to_base64(path):
-    if not os.path.exists(path):
-        return ""
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
-
-def get_whatsapp_link(message):
-    encoded = urllib.parse.quote(message)
-    return f"https://wa.me/91{CONTACT}?text={encoded}"
-
-def save_lead(name, mobile, category, destination, persons, date, note):
-    data = {
+def save_lead(name, mobile, category, destination, persons, travel_date, note):
+    row = {
         "DateTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "Name": name,
         "Mobile": mobile,
         "Category": category,
         "Destination": destination,
         "Persons": persons,
-        "Travel Date": str(date),
+        "Travel Date": str(travel_date),
         "Note": note
     }
 
-    df = pd.DataFrame([data])
-
+    df = pd.DataFrame([row])
     if os.path.exists(LEADS_FILE):
         old = pd.read_csv(LEADS_FILE)
         df = pd.concat([old, df], ignore_index=True)
@@ -176,7 +178,6 @@ def create_daywise_itinerary(destination, places, days, start_location):
                 f"Arrival at {destination}",
                 "Hotel check-in and refreshment",
                 "Breakfast / Welcome drink",
-                "Proceed to sightseeing",
                 places[0],
                 places[1] if len(places) > 1 else places[0],
                 "Lunch",
@@ -189,7 +190,6 @@ def create_daywise_itinerary(destination, places, days, start_location):
             plan = [
                 "Breakfast",
                 "Hotel check-out",
-                "Proceed to final sightseeing",
                 places[-2] if len(places) > 2 else places[0],
                 places[-1],
                 "Lunch",
@@ -198,21 +198,16 @@ def create_daywise_itinerary(destination, places, days, start_location):
                 f"Return back to {start_location}"
             ]
         else:
-            first_place = places[(day + 1) % len(places)]
-            second_place = places[(day + 2) % len(places)]
-
             plan = [
                 "Breakfast",
-                "Proceed to sightseeing",
-                first_place,
+                places[(day + 1) % len(places)],
                 "Explore nearby attractions",
                 "Lunch",
-                second_place,
+                places[(day + 2) % len(places)],
                 "Evening leisure / camp fire / cultural experience",
                 "Dinner",
                 "Night stay at hotel"
             ]
-
         itinerary.append((day, plan))
 
     return itinerary
@@ -225,22 +220,20 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
 
     normal = ParagraphStyle("normal", parent=styles["Normal"], fontSize=11, leading=16)
     small = ParagraphStyle("small", parent=styles["Normal"], fontSize=10, leading=14)
-    heading = ParagraphStyle("heading", parent=styles["Heading2"], fontSize=15, leading=20, textColor=colors.HexColor(THEME["teal"]))
-    title = ParagraphStyle("title", parent=styles["Title"], fontSize=18, leading=24, alignment=1, textColor=colors.HexColor(THEME["teal"]))
+    heading = ParagraphStyle("heading", parent=styles["Heading2"], fontSize=15, textColor=colors.HexColor(TEAL))
+    title = ParagraphStyle("title", parent=styles["Title"], fontSize=18, alignment=1, textColor=colors.HexColor(TEAL))
 
     story = []
 
     def header():
         if os.path.exists(LOGO_PATH):
-            logo = RLImage(LOGO_PATH, width=1.5 * inch, height=1.0 * inch)
+            logo = RLImage(LOGO_PATH, width=1.45 * inch, height=1.0 * inch)
         else:
             logo = Paragraph("<b>ENDLESS XPLORERS</b>", heading)
 
         contact = Paragraph(
             f"<b>Endless Xplorers</b><br/>"
-            f"Contact: {PHONE_DISPLAY}<br/>"
-            f"Email: {EMAIL}<br/>"
-            f"Instagram: {INSTAGRAM}",
+            f"{PHONE_DISPLAY}<br/>{EMAIL}<br/>{INSTAGRAM}",
             small
         )
 
@@ -249,11 +242,10 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("ALIGN", (1, 0), (1, 0), "RIGHT"),
         ]))
-
         story.append(table)
         story.append(Spacer(1, 8))
         story.append(Table([[""]], colWidths=[7 * inch],
-                           style=[("LINEBELOW", (0, 0), (-1, -1), 2, colors.HexColor(THEME["gold"]))]))
+                           style=[("LINEBELOW", (0, 0), (-1, -1), 2, colors.HexColor(GOLD))]))
         story.append(Spacer(1, 20))
 
     header()
@@ -266,19 +258,19 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
     story.append(Spacer(1, 18))
 
     details = [
-        ["College / Company Name:", company_name],
-        ["Client Name:", client_name],
+        ["College / Company / Customer Name:", company_name],
+        ["Client Contact Person:", client_name],
         ["Tour Category:", category],
         ["Plan:", plan_name],
         ["Destination:", destination],
         ["No. of Days:", str(days)]
     ]
 
-    details_table = Table(details, colWidths=[2.2 * inch, 4.4 * inch])
+    details_table = Table(details, colWidths=[2.7 * inch, 4.0 * inch])
     details_table.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
         ("FONTNAME", (1, 0), (1, -1), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 12),
+        ("FONTSIZE", (0, 0), (-1, -1), 11),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
     ]))
     story.append(details_table)
@@ -287,14 +279,9 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
 
     for day, plan in itinerary:
         story.append(Spacer(1, 14))
-        story.append(Paragraph(f"<b>Day {day} :</b>", heading))
-
+        story.append(Paragraph(f"<b>Day {day}</b>", heading))
         for item in plan:
-            if item in ["Breakfast", "Lunch", "Dinner", "Night stay at hotel", "Breakfast / Welcome drink"]:
-                story.append(Paragraph(f"<b>{item}</b>", normal))
-            else:
-                story.append(Paragraph(f"• {item}", normal))
-
+            story.append(Paragraph(f"• {item}", normal))
         if day != days:
             story.append(PageBreak())
             header()
@@ -316,9 +303,10 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
     tariff_table = Table(tariff_data, colWidths=[3 * inch, 3.8 * inch])
     tariff_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.8, colors.grey),
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor(CREAM)),
+        ("FONTNAME", (0, 0), (-1, -1), "Helvetica-Bold"),
+        ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor(TEAL)),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("FONTNAME", (1, 0), (1, -1), "Helvetica-Bold"),
-        ("TEXTCOLOR", (1, 0), (1, -1), colors.HexColor(THEME["teal"])),
         ("FONTSIZE", (0, 0), (-1, -1), 11),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
         ("TOPPADDING", (0, 0), (-1, -1), 10),
@@ -326,17 +314,14 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
     story.append(tariff_table)
 
     story.append(Spacer(1, 25))
-    story.append(Paragraph("<u>Package Inclusions:</u>", heading))
-
+    story.append(Paragraph("<u>Package Inclusions</u>", heading))
     inclusions = [
         "Accommodation in comfortable and convenient hotels.",
         "Sightseeing places as mentioned in the itinerary.",
-        "Tour Manager services from Day 1 meeting point till dropping point on last day.",
-        "Breakfast, Lunch and Dinner as per the package food plan.",
-        "Additional activities as mentioned in the tariff chart.",
-        "Bus / Train / Flight tickets if included in the package.",
+        "Tour Manager services from meeting point till dropping point.",
+        "Food as per the package food plan.",
+        "Transport as per itinerary.",
         "Toll, parking, fuel, driver bata and applicable taxes if included.",
-        "Travel by comfortable A/c or Non A/c coach / vehicle as per itinerary.",
         "Under unavoidable circumstances alternative hotels and vehicles will be provided."
     ]
 
@@ -346,24 +331,23 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
     story.append(PageBreak())
     header()
 
-    story.append(Paragraph("<u>Package Exclusions:</u>", heading))
-
+    story.append(Paragraph("<u>Package Exclusions</u>", heading))
     exclusions = [
-        "Any extra expense such as route change, personal expenses, laundry, telephone calls, tips, liquor, food or drink which is not part of a set group menu.",
+        "Personal expenses, laundry, telephone calls, tips, liquor, food or drink not part of the menu.",
         "Additional sightseeing or usage of vehicle not mentioned in the itinerary.",
-        "Any upgradation in hotel room category.",
-        "Any extra cost incurred due to illness, accident, hospitalization or personal emergency.",
-        "Any services or activity charges other than those included in the tour itinerary."
+        "Hotel room upgrade charges.",
+        "Medical emergency, hospitalization or personal emergency expenses.",
+        "Any service not mentioned in inclusions."
     ]
 
     for item in exclusions:
         story.append(Paragraph(f"• {item}", small))
 
     story.append(Spacer(1, 18))
-    story.append(Paragraph("<u>Tour Payment by Guest:</u>", heading))
+    story.append(Paragraph("<u>Tour Payment by Guest</u>", heading))
     payments = [
-        "The guest will have to make 50% payment for confirming the services.",
-        "The guest will have to make the full payment before tour departure.",
+        "50% payment is required for confirming the services.",
+        "Full payment should be completed before tour departure.",
         "Any increase in government tax, visa fee, ticket fare, permit or entry charges shall be paid by the guest."
     ]
 
@@ -371,11 +355,9 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
         story.append(Paragraph(f"• {item}", small))
 
     story.append(Spacer(1, 18))
-    story.append(Paragraph("<u>Cancellation Policy:</u>", heading))
+    story.append(Paragraph("<u>Cancellation Policy</u>", heading))
     story.append(Paragraph(
-        "If the guest decides to cancel the tour for any reason, she/he shall give a written application "
-        "to the company within the specified time limit. Cancellation charges will depend on the date of departure "
-        "and date of cancellation.",
+        "Cancellation charges will depend on the date of departure and date of cancellation.",
         small
     ))
 
@@ -383,119 +365,117 @@ def generate_pdf(output_path, company_name, client_name, plan_name, category, de
     header()
 
     cancel_table = Table([
-        ["No of days Prior to Departure", "% of Cancellation Charges"],
+        ["No. of days prior to departure", "Cancellation Charges"],
         ["10 Days Before", "25%"],
         ["5 Days Before", "50%"],
         ["2 Days Before", "75%"],
-        ["24 hrs. / No Show", "100%"],
+        ["24 hrs / No Show", "100%"],
     ], colWidths=[3.5 * inch, 3.2 * inch])
 
     cancel_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.8, colors.grey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(CREAM)),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(THEME["cream"])),
-        ("FONTSIZE", (0, 0), (-1, -1), 11),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
-        ("TOPPADDING", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
     ]))
-
     story.append(cancel_table)
+
     story.append(Spacer(1, 70))
-    story.append(Paragraph("*** Thank you for choosing Endless Xplorers. ***", title))
+    story.append(Paragraph("*** Thank you for choosing Endless Xplorers ***", title))
     story.append(Spacer(1, 15))
     story.append(Paragraph(TAGLINE, title))
 
     doc.build(story)
 
-page_images = extract_brochure_pages()
-
+# =========================
+# CSS
+# =========================
 st.markdown(f"""
 <style>
 .stApp {{
-    background: linear-gradient(135deg, #f8f3df 0%, #ffffff 50%, #edf7f6 100%);
+    background: linear-gradient(135deg, #fffaf0, #eef9f7);
 }}
 
 [data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, {THEME["teal"]}, #021f1f);
+    background: linear-gradient(180deg, {TEAL}, #021d1d);
 }}
 
 [data-testid="stSidebar"] * {{
     color: white !important;
 }}
 
-.main-title {{
+.hero {{
+    background: linear-gradient(135deg, {TEAL}, #0b6666);
+    color: white;
+    padding: 34px;
+    border-radius: 28px;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.18);
+    border: 1px solid {GOLD};
+}}
+
+.hero h1 {{
     font-size: 54px;
-    font-weight: 900;
-    color: {THEME["teal"]};
-    margin-bottom: 0px;
+    margin-bottom: 0;
 }}
 
 .gold {{
-    color: {THEME["gold"]};
+    color: {GOLD};
 }}
 
-.hero-box {{
-    background: linear-gradient(135deg, rgba(6,59,59,0.95), rgba(6,59,59,0.75));
-    border-radius: 28px;
-    padding: 35px;
-    color: white;
-    box-shadow: 0px 20px 55px rgba(0,0,0,0.20);
-    border: 1px solid rgba(212,175,55,0.5);
-}}
-
-.premium-card {{
+.card {{
     background: rgba(255,255,255,0.95);
-    padding: 24px;
     border-radius: 24px;
-    box-shadow: 0px 12px 35px rgba(0,0,0,0.10);
-    border: 1px solid #eadca1;
-    margin-bottom: 20px;
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.10);
+    border: 1px solid #e8d58a;
+    margin-bottom: 22px;
 }}
 
-.metric-card {{
-    background: linear-gradient(135deg, {THEME["teal"]}, #0b5f5f);
-    color: white;
-    padding: 22px;
-    border-radius: 22px;
-    text-align: center;
-    border-bottom: 5px solid {THEME["gold"]};
-}}
-
-.package-card {{
+.package {{
     background: white;
-    padding: 18px;
+    border-radius: 22px;
+    padding: 20px;
+    min-height: 165px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    border-bottom: 5px solid {GOLD};
+}}
+
+.service {{
+    background: linear-gradient(135deg, {TEAL}, #0b6666);
+    color: white;
     border-radius: 20px;
-    border: 1px solid #eadca1;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-    min-height: 170px;
+    padding: 18px;
+    min-height: 145px;
+    text-align:center;
+    border-bottom: 5px solid {GOLD};
 }}
 
 .section-title {{
-    color: {THEME["teal"]};
-    font-size: 32px;
+    color: {TEAL};
+    font-size: 34px;
     font-weight: 900;
-    margin-top: 15px;
+    margin-top: 10px;
 }}
 
 .stButton button {{
-    background: linear-gradient(135deg, {THEME["teal"]}, #0b7777);
+    background: linear-gradient(135deg, {TEAL}, #0a7777);
     color: white;
-    border-radius: 14px;
     border: none;
+    border-radius: 14px;
     font-weight: 800;
-    padding: 12px 20px;
 }}
 
 .stDownloadButton button {{
-    background: linear-gradient(135deg, {THEME["gold"]}, #f5d76e);
+    background: linear-gradient(135deg, {GOLD}, #f5d76e);
     color: #111;
-    border-radius: 14px;
     border: none;
+    border-radius: 14px;
     font-weight: 800;
 }}
 
-a.whatsapp {{
+.whatsapp {{
     display:inline-block;
     padding:14px 22px;
     background:#25D366;
@@ -503,20 +483,22 @@ a.whatsapp {{
     text-decoration:none;
     border-radius:14px;
     font-weight:900;
-    margin-top:10px;
 }}
 
 .footer {{
-    text-align:center;
-    background:{THEME["teal"]};
+    background:{TEAL};
     color:white;
-    padding:30px;
-    border-radius:25px;
+    text-align:center;
+    border-radius:26px;
+    padding:28px;
     margin-top:25px;
 }}
 </style>
 """, unsafe_allow_html=True)
 
+# =========================
+# SIDEBAR
+# =========================
 with st.sidebar:
     if os.path.exists(LOGO_PATH):
         st.image(LOGO_PATH, width=170)
@@ -538,40 +520,47 @@ with st.sidebar:
                 use_container_width=True
             )
 
-    st.info("Domestic • International • Educational • Corporate • Honeymoon • Pilgrimage")
+    st.success("Domestic • International • Educational • Corporate • Honeymoon • Pilgrimage")
 
+# =========================
+# MAIN TABS
+# =========================
 tabs = st.tabs([
     "🏠 Home",
     "🌍 Packages",
     "🧳 Itinerary Generator",
-    "📸 Brochure Gallery",
+    "🛎 Services",
+    "📘 Brochure Preview",
     "📞 Enquiry",
-    "📊 Leads"
+    "📊 Admin Leads"
 ])
 
+# =========================
+# HOME
+# =========================
 with tabs[0]:
-    col1, col2 = st.columns([1.1, 1])
+    c1, c2 = st.columns([1.15, 1])
 
-    with col1:
-        st.markdown("""
-        <div class="hero-box">
-            <h1 style="font-size:54px;margin-bottom:5px;">Endless Xplorers</h1>
-            <h2 style="color:#D4AF37;">Explore Beyond Boundaries</h2>
-            <p style="font-size:18px;">Premium Domestic, International, Educational, Corporate, Honeymoon and Pilgrimage travel packages.</p>
-            <p><b>Creating Memories Together...</b></p>
+    with c1:
+        st.markdown(f"""
+        <div class="hero">
+            <h1>Endless Xplorers</h1>
+            <h2 class="gold">Explore Beyond Boundaries</h2>
+            <p style="font-size:18px;">Premium travel packages for domestic, international, educational, corporate, honeymoon and pilgrimage tours.</p>
+            <h3>{TAGLINE}</h3>
         </div>
         """, unsafe_allow_html=True)
 
         st.write("")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown("<div class='metric-card'><h2>50+</h2><p>Destinations</p></div>", unsafe_allow_html=True)
-        with c2:
-            st.markdown("<div class='metric-card'><h2>24/7</h2><p>Support</p></div>", unsafe_allow_html=True)
-        with c3:
-            st.markdown("<div class='metric-card'><h2>100%</h2><p>Custom Plans</p></div>", unsafe_allow_html=True)
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.markdown("<div class='service'><h2>50+</h2><p>Destinations</p></div>", unsafe_allow_html=True)
+        with m2:
+            st.markdown("<div class='service'><h2>24/7</h2><p>Support</p></div>", unsafe_allow_html=True)
+        with m3:
+            st.markdown("<div class='service'><h2>100%</h2><p>Custom Plans</p></div>", unsafe_allow_html=True)
 
-    with col2:
+    with c2:
         if 1 in page_images:
             st.image(page_images[1], use_container_width=True)
         elif os.path.exists(LOGO_PATH):
@@ -579,36 +568,39 @@ with tabs[0]:
 
     st.markdown("<h2 class='section-title'>Why Choose Endless Xplorers?</h2>", unsafe_allow_html=True)
 
-    w1, w2, w3, w4 = st.columns(4)
-    items = [
-        ("🎯", "Customized Packages", "Tailored itineraries for your budget and needs."),
-        ("🛡️", "Safe & Secure", "Trusted travel support from start to finish."),
-        ("💎", "Premium Experience", "Quality hotels, transport and service partners."),
-        ("📞", "24/7 Support", "Always available before, during and after your journey.")
+    cols = st.columns(4)
+    why = [
+        ("🎯", "Customized Packages", "Itineraries for your budget, group and travel style."),
+        ("💎", "Premium Experience", "Quality stay, transport and trusted travel partners."),
+        ("🛡️", "Safe & Secure", "Carefully planned travel with reliable support."),
+        ("📞", "24/7 Support", "Assistance before, during and after your trip.")
     ]
 
-    for col, item in zip([w1, w2, w3, w4], items):
+    for col, item in zip(cols, why):
         with col:
             st.markdown(f"""
-            <div class="package-card">
+            <div class="package">
                 <h2>{item[0]}</h2>
                 <h3>{item[1]}</h3>
                 <p>{item[2]}</p>
             </div>
             """, unsafe_allow_html=True)
 
+# =========================
+# PACKAGES
+# =========================
 with tabs[1]:
-    st.markdown("<h2 class='section-title'>Explore Our Package Collections</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 class='section-title'>Package Collections</h2>", unsafe_allow_html=True)
 
-    cat_tabs = st.tabs(list(DESTINATIONS.keys()))
+    package_tabs = st.tabs(list(DESTINATIONS.keys()))
 
-    for cat_tab, category in zip(cat_tabs, DESTINATIONS.keys()):
-        with cat_tab:
-            page_no = BROCHURE_PAGE_MAP.get(category)
-            if page_no and page_no in page_images:
-                st.image(page_images[page_no], use_container_width=True)
+    for tab, category in zip(package_tabs, DESTINATIONS.keys()):
+        with tab:
+            page_no = BROCHURE_PAGES.get(category)
+            if page_no in page_images:
+                with st.expander(f"View {category} brochure preview", expanded=False):
+                    st.image(page_images[page_no], use_container_width=True)
 
-            st.write("")
             names = list(DESTINATIONS[category].keys())
 
             for i in range(0, len(names), 4):
@@ -616,82 +608,89 @@ with tabs[1]:
                 for col, name in zip(cols, names[i:i+4]):
                     with col:
                         places = DESTINATIONS[category][name]
+                        msg = f"Hi Endless Xplorers, I need details for {name} package."
                         st.markdown(f"""
-                        <div class="package-card">
+                        <div class="package">
                             <h3>{name}</h3>
                             <p>{", ".join(places[:4])}</p>
-                            <b class="gold">Custom itinerary available</b>
+                            <b class="gold">Custom package available</b>
                         </div>
                         """, unsafe_allow_html=True)
+                        st.markdown(
+                            f"<a class='whatsapp' href='{whatsapp_link(msg)}' target='_blank'>Enquire</a>",
+                            unsafe_allow_html=True
+                        )
 
+# =========================
+# ITINERARY GENERATOR
+# =========================
 with tabs[2]:
-    st.markdown("<h2 class='section-title'>Client Itinerary Package Generator</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 class='section-title'>Premium Client Itinerary Generator</h2>", unsafe_allow_html=True)
 
-    with st.container():
-        c1, c2, c3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-        with c1:
-            company_name = st.text_input("College / Company / Customer Name", "SNMV")
-            client_name = st.text_input("Client Contact Person", "Praveen - IT")
-            start_location = st.text_input("Starting Location", "Coimbatore")
+    with c1:
+        company_name = st.text_input("College / Company / Customer Name", "SNMV")
+        client_name = st.text_input("Client Contact Person", "Praveen - IT")
+        start_location = st.text_input("Starting Location", "Coimbatore")
 
-        with c2:
-            category = st.selectbox("Tour Category", list(DESTINATIONS.keys()))
-            destination = st.selectbox("Destination / Package", list(DESTINATIONS[category].keys()))
-            days = st.slider("No. of Days", 1, 12, 3)
+    with c2:
+        category = st.selectbox("Tour Category", list(DESTINATIONS.keys()))
+        destination = st.selectbox("Destination / Package", list(DESTINATIONS[category].keys()))
+        days = st.slider("No. of Days", 1, 12, 3)
 
-        with c3:
-            persons = st.number_input("No. of Persons / Students", 1, 500, 35)
-            staff_count = st.number_input("No. of Staff / Coordinators", 0, 50, 2)
-            accommodation = st.text_input("Accommodation Mode", "04 Sharing basis")
+    with c3:
+        persons = st.number_input("No. of Persons / Students", 1, 500, 35)
+        staff_count = st.number_input("No. of Staff / Coordinators", 0, 50, 2)
+        accommodation = st.text_input("Accommodation Mode", "04 Sharing basis")
 
-        transport = st.text_input("Transport", "54 Seater Coach / As per group size")
-        food = st.text_input("Food", "Breakfast, Lunch and Dinner as per package")
-        activities = st.text_input("Additional Activities", "Entry Tickets, Jeep, DJ / Camp Fire / Cruise if applicable")
+    transport = st.text_input("Transport", "54 Seater Coach / As per group size")
+    food = st.text_input("Food", "Breakfast, Lunch and Dinner as per package")
+    activities = st.text_input("Additional Activities", "Entry Tickets, Jeep, DJ / Camp Fire / Cruise if applicable")
 
-        places = DESTINATIONS[category][destination]
-        plan_name = f"{destination} - {category} Package"
+    places = DESTINATIONS[category][destination]
+    plan_name = f"{destination} - {category} Package"
 
-        st.markdown("### Day-wise Preview")
+    st.markdown("### Day-wise Preview")
 
-        preview = create_daywise_itinerary(destination, places, days, start_location)
+    preview = create_daywise_itinerary(destination, places, days, start_location)
 
-        for day, plan in preview:
-            with st.expander(f"Day {day}", expanded=True):
-                for item in plan:
-                    st.write("•", item)
+    for day, plan in preview:
+        with st.expander(f"Day {day}", expanded=True):
+            for item in plan:
+                st.write("•", item)
 
-        if st.button("📥 Generate Premium Client Itinerary PDF", use_container_width=True):
-            output_pdf = os.path.join(APP_FOLDER, f"{destination}_Itinerary.pdf")
+    if st.button("📥 Generate Client Itinerary PDF", use_container_width=True):
+        output_pdf = os.path.join(APP_FOLDER, f"{destination}_Itinerary.pdf")
 
-            generate_pdf(
-                output_pdf,
-                company_name,
-                client_name,
-                plan_name,
-                category,
-                destination,
-                days,
-                start_location,
-                persons,
-                staff_count,
-                accommodation,
-                transport,
-                food,
-                activities,
-                places
+        generate_pdf(
+            output_pdf,
+            company_name,
+            client_name,
+            plan_name,
+            category,
+            destination,
+            days,
+            start_location,
+            persons,
+            staff_count,
+            accommodation,
+            transport,
+            food,
+            activities,
+            places
+        )
+
+        with open(output_pdf, "rb") as f:
+            st.download_button(
+                "✅ Download Client Package PDF",
+                f,
+                file_name=f"{destination}_Package.pdf",
+                mime="application/pdf",
+                use_container_width=True
             )
 
-            with open(output_pdf, "rb") as f:
-                st.download_button(
-                    "✅ Download Client Package PDF",
-                    f,
-                    file_name=f"{destination}_Package.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-
-        whatsapp_msg = f"""
+    whatsapp_msg = f"""
 🌍 Endless Xplorers
 
 ✨ {destination} {category} Tour Package ✨
@@ -713,70 +712,122 @@ Places Covered:
 ✨ Explore Beyond Boundaries
 ✨ Creating Memories Together
 """
-        st.text_area("Copy WhatsApp Message", whatsapp_msg, height=250)
-        st.markdown(f"<a class='whatsapp' href='{get_whatsapp_link(whatsapp_msg)}' target='_blank'>📲 Send Enquiry on WhatsApp</a>", unsafe_allow_html=True)
 
+    st.text_area("WhatsApp Message", whatsapp_msg, height=240)
+    st.markdown(
+        f"<a class='whatsapp' href='{whatsapp_link(whatsapp_msg)}' target='_blank'>📲 Send on WhatsApp</a>",
+        unsafe_allow_html=True
+    )
+
+# =========================
+# SERVICES
+# =========================
 with tabs[3]:
-    st.markdown("<h2 class='section-title'>Brochure Gallery</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 class='section-title'>Our Travel Services</h2>", unsafe_allow_html=True)
 
-    if page_images:
-        labels = list(BROCHURE_PAGE_MAP.keys())
-        selected_label = st.selectbox("Select Brochure Page", labels)
-        selected_page = BROCHURE_PAGE_MAP[selected_label]
+    services = [
+        ("✈️", "Flight Bookings", "Domestic and international flight booking support."),
+        ("🏨", "Hotel Reservations", "Comfortable stays for every budget and preference."),
+        ("🚌", "Transportation", "Buses, cars and private vehicle arrangements."),
+        ("🛂", "Visa Assistance", "Guidance and documentation support."),
+        ("🛡️", "Travel Insurance", "Protection for worry-free travel."),
+        ("🎫", "Holiday Packages", "Carefully curated packages for all travellers."),
+        ("📋", "Tour Planning", "Customized itinerary planning."),
+        ("📞", "24/7 Support", "Assistance throughout your journey.")
+    ]
+
+    for i in range(0, len(services), 4):
+        cols = st.columns(4)
+        for col, s in zip(cols, services[i:i+4]):
+            with col:
+                st.markdown(f"""
+                <div class="service">
+                    <h1>{s[0]}</h1>
+                    <h3>{s[1]}</h3>
+                    <p>{s[2]}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+# =========================
+# BROCHURE PREVIEW
+# =========================
+with tabs[4]:
+    st.markdown("<h2 class='section-title'>Brochure Preview</h2>", unsafe_allow_html=True)
+    st.info("Only selected preview is shown here. Full brochure can be downloaded from the sidebar.")
+
+    b1, b2 = st.columns([1, 1])
+
+    with b1:
+        selected = st.selectbox("Select preview section", list(BROCHURE_PAGES.keys()))
+        selected_page = BROCHURE_PAGES[selected]
 
         if selected_page in page_images:
             st.image(page_images[selected_page], use_container_width=True)
+        else:
+            st.warning("Brochure preview not available.")
 
-        st.write("")
-        st.markdown("### Quick Gallery")
-        for i in range(1, 14, 3):
-            cols = st.columns(3)
-            for col, page_no in zip(cols, range(i, min(i+3, 14))):
-                with col:
-                    if page_no in page_images:
-                        st.image(page_images[page_no], caption=f"Page {page_no}", use_container_width=True)
-    else:
-        st.warning("Brochure PDF not found. Please upload 'Endless Xplorer Final 1.pdf'.")
+    with b2:
+        st.markdown("""
+        <div class="card">
+            <h2>Endless Xplorers Brochure</h2>
+            <p>Our brochure includes Domestic Tours, International Tours, Honeymoon Packages, Pilgrimage Tours, Educational Tours, Corporate Tours and Travel Services.</p>
+            <p><b>Use this section only as preview. Download the full PDF for sharing.</b></p>
+        </div>
+        """, unsafe_allow_html=True)
 
-with tabs[4]:
+        if os.path.exists(BROCHURE_PATH):
+            with open(BROCHURE_PATH, "rb") as f:
+                st.download_button(
+                    "📘 Download Full Brochure",
+                    f,
+                    file_name="Endless_Xplorers_Brochure.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+
+# =========================
+# ENQUIRY
+# =========================
+with tabs[5]:
     st.markdown("<h2 class='section-title'>Customer Enquiry Form</h2>", unsafe_allow_html=True)
 
     e1, e2 = st.columns(2)
 
     with e1:
-        enq_name = st.text_input("Customer Name")
-        enq_mobile = st.text_input("Mobile Number")
+        name = st.text_input("Customer Name")
+        mobile = st.text_input("Mobile Number")
         enq_category = st.selectbox("Interested Category", list(DESTINATIONS.keys()), key="enqcat")
 
     with e2:
         enq_destination = st.selectbox("Interested Destination", list(DESTINATIONS[enq_category].keys()), key="enqdest")
         enq_persons = st.number_input("Number of Persons", 1, 500, 2, key="enqpersons")
-        enq_date = st.date_input("Expected Travel Date")
+        travel_date = st.date_input("Expected Travel Date")
 
-    enq_note = st.text_area("Requirement / Notes", "Need customized travel package details.")
+    note = st.text_area("Requirement / Notes", "Need customized travel package details.")
 
-    if st.button("✅ Save Enquiry & Prepare WhatsApp Message", use_container_width=True):
-        if enq_name and enq_mobile:
-            save_lead(enq_name, enq_mobile, enq_category, enq_destination, enq_persons, enq_date, enq_note)
-            st.success("Customer enquiry saved successfully.")
+    if st.button("✅ Save Enquiry", use_container_width=True):
+        if name and mobile:
+            save_lead(name, mobile, enq_category, enq_destination, enq_persons, travel_date, note)
+            st.success("Enquiry saved successfully.")
 
             msg = f"""
 New Travel Enquiry - Endless Xplorers
 
-Name: {enq_name}
-Mobile: {enq_mobile}
+Name: {name}
+Mobile: {mobile}
 Category: {enq_category}
 Destination: {enq_destination}
 Persons: {enq_persons}
-Travel Date: {enq_date}
-Requirement: {enq_note}
+Travel Date: {travel_date}
+Requirement: {note}
 """
-            st.markdown(f"<a class='whatsapp' href='{get_whatsapp_link(msg)}' target='_blank'>📲 Send to WhatsApp</a>", unsafe_allow_html=True)
+            st.markdown(
+                f"<a class='whatsapp' href='{whatsapp_link(msg)}' target='_blank'>📲 Send to WhatsApp</a>",
+                unsafe_allow_html=True
+            )
         else:
             st.error("Please enter customer name and mobile number.")
 
-    st.write("")
-    st.markdown("### Contact Details")
     st.info(f"""
 📞 {PHONE_DISPLAY}  
 📧 {EMAIL}  
@@ -784,8 +835,11 @@ Requirement: {enq_note}
 📍 {ADDRESS}
 """)
 
-with tabs[5]:
-    st.markdown("<h2 class='section-title'>Customer Leads</h2>", unsafe_allow_html=True)
+# =========================
+# ADMIN LEADS
+# =========================
+with tabs[6]:
+    st.markdown("<h2 class='section-title'>Admin Leads</h2>", unsafe_allow_html=True)
 
     password = st.text_input("Enter Admin Password", type="password")
 
@@ -807,6 +861,9 @@ with tabs[5]:
     elif password:
         st.error("Wrong password.")
 
+# =========================
+# FOOTER
+# =========================
 st.markdown(f"""
 <div class="footer">
     <h2>Endless Xplorers</h2>
