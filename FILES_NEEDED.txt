@@ -1,0 +1,17 @@
+FILES YOU MUST KEEP IN GITHUB
+
+Required:
+1. app.py
+2. requirements.txt
+3. assets/logo_transparent.png
+4. all images inside assets folder
+
+Optional things needed from you later:
+1. Google Maps location link
+2. Real customer reviews
+3. Exact package prices
+4. Facebook / YouTube links if available
+5. Actual customer trip photos if you want to replace generated images
+
+Admin Password:
+endlessxplorers
